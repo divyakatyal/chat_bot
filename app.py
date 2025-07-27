@@ -7,15 +7,12 @@ from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
 
-# Load environment variables
+
 load_dotenv()
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = Flask(__name__)
 
-# ================================
-# Load and index the CSV dataset
-# ================================
 DATA_PATH = "Training Dataset.csv"
 df = pd.read_csv(DATA_PATH).fillna("")
 documents = df.apply(lambda row: " | ".join(row.astype(str)), axis=1).tolist()
@@ -28,17 +25,11 @@ dimension = document_embeddings[0].shape[0]
 index = faiss.IndexFlatL2(dimension)
 index.add(np.array(document_embeddings).astype('float32'))
 
-# ================================
-# Helper Functions
-# ================================
 def retrieve_context(question, k=3):
     query_embedding = embedder.encode([question])
     D, I = index.search(np.array(query_embedding).astype('float32'), k)
     return "\n".join([documents[i] for i in I[0]])
 
-# ================================
-# API Route
-# ================================
 @app.route("/ask", methods=["POST"])
 def ask():
     data = request.get_json()
@@ -60,8 +51,5 @@ def ask():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ================================
-# Run Flask App
-# ================================
 if __name__ == "__main__":
     app.run(debug=True)
